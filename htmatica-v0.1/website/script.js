@@ -232,11 +232,11 @@ function init() {
         // Adjust camera_zoom based on scroll direction
         if (event.deltaY < 0) {
             camera_zoom *= 1.1;  // Zoom in
-            camX += canvas.clientWidth/50*camera_zoom/2
-            camY += canvas.clientHeight/50*camera_zoom/2
+            camX += canvas.clientWidth / 50 * camera_zoom / 2
+            camY += canvas.clientHeight / 50 * camera_zoom / 2
         } else {
-            camX -= canvas.clientWidth/50*camera_zoom/2
-            camY -= canvas.clientHeight/50*camera_zoom/2
+            camX -= canvas.clientWidth / 50 * camera_zoom / 2
+            camY -= canvas.clientHeight / 50 * camera_zoom / 2
             camera_zoom /= 1.1;  // Zoom out
         }
 
@@ -344,6 +344,21 @@ function update_hierachy() {
     });
 }
 
+function parse_additional(str) {
+    const trimmedStr = str.slice(1, -1);
+
+    const pairs = trimmedStr.split(',');
+    const result = {};
+
+    pairs.forEach(pair => {
+        const [key, value] = pair.split('=');
+
+        result[key] = value === "true" ? true : value === "false" ? false : value;
+    });
+
+    return result;
+}
+
 function inspect_block(i) {
     console.log(i)
     inspected_block = i
@@ -352,22 +367,128 @@ function inspect_block(i) {
     document.getElementById("inspect_y").value = block.pos.y
     document.getElementById("inspect_z").value = block.pos.z
     document.getElementById("inspect_block_state").value = block.block_state
+
+    // Load special states
+    let states = blocks[block.block_state].states
+
+    parent = document.getElementById("additional_elements")
+    parent.innerHTML = ""
+
+    let additional = false
     if ("additional" in block) {
-        document.getElementById("inspect_additional").value = block.additional
+        additional = parse_additional(block.additional)
+        console.log(additional)
     }
-    else {
-        document.getElementById("inspect_additional").value = ""
-    }
+
+    states.forEach(state => {
+        let name = state.name
+        let type = state.type
+
+        if (type == "enum") {
+            let possibilities = state.values
+            let element = document.createElement("select")
+            element.id = `inspector_additional_${name}`
+            
+            element.onchange = () => save_inspection()
+            possibilities.forEach(pos => {
+                let opt = document.createElement("option")
+                opt.textContent = pos
+                element.appendChild(opt)
+            });
+            let label = document.createElement("label")
+            label.for = element.id
+            label.textContent = name
+
+            parent.appendChild(label)
+            parent.appendChild(element)
+
+            if (additional != false) {
+                document.getElementById(`inspector_additional_${name}`).value = additional[name]
+            }
+        }
+
+        if (type == "bool") {
+            let element = document.createElement("input")
+            element.type = "checkbox"
+            element.id = `inspector_additional_${name}`
+            element.onchange = () => save_inspection()
+
+            let label = document.createElement("label")
+            label.for = element.id
+            label.textContent = name
+
+            parent.appendChild(label)
+            parent.appendChild(element)
+
+            if (additional != false) {
+                document.getElementById(`inspector_additional_${name}`).checked = additional[name]
+            }
+        }
+
+        if (type == "int") {
+            let element = document.createElement("input")
+            element.type = "number"
+            element.id = `inspector_additional_${name}`
+            element.onchange = () => save_inspection()
+
+
+            let label = document.createElement("label")
+            label.for = element.id
+            label.textContent = name
+
+            parent.appendChild(label)
+            parent.appendChild(element)
+
+            if (additional != false) {
+                document.getElementById(`inspector_additional_${name}`).value = additional[name]
+            }
+        }
+        let br = document.createElement("br")
+        parent.append(br)
+    });
 }
 
 function delete_inspected() {
-    schematic.blocks.splice(inspected_block, 1)
-    render(camera_zoom)
-    update_hierachy()
+    if (inspected_block) {
+        schematic.blocks.splice(inspected_block, 1)
+        render(camera_zoom)
+        update_hierachy()
+        inspected_block = null
+        document.getElementById("additional_elements").innerHTML = ""
+        document.getElementById("inspect_x").value = ""
+        document.getElementById("inspect_y").value = ""
+        document.getElementById("inspect_z").value = ""
+        document.getElementById("inspect_block_state").value = ""
+    }
 }
 
 function save_inspection() {
     if (block_list.includes(document.getElementById("inspect_block_state").value)) {
+        let states = blocks[block.block_state].states
+
+        let additional = "["
+
+        states.forEach(state => {
+            let name = state.name
+            let type = state.type
+            let value = "error"
+            if (type != "bool") {
+                value = document.getElementById(`inspector_additional_${name}`).value
+            }
+            else {
+                if (document.getElementById(`inspector_additional_${name}`).checked) {
+                    value = "true"
+                }
+                else {
+                    value = "false"
+                }
+            }
+            additional += `${name}=${value},`
+        })
+
+        additional = additional.substring(0, additional.length - 1) + "]"
+        console.log(additional)
+
         let x = document.getElementById("inspect_x").value
         let y = document.getElementById("inspect_y").value
         let z = document.getElementById("inspect_z").value
@@ -384,6 +505,11 @@ function save_inspection() {
         x = parseInt(x)
         y = parseInt(y)
         z = parseInt(z)
+
+
+
+
+
         schematic.blocks[inspected_block] = {
             pos: {
                 x: x,
@@ -391,7 +517,7 @@ function save_inspection() {
                 z: z
             },
             block_state: document.getElementById("inspect_block_state").value,
-            additional: document.getElementById("inspect_additional").value
+            additional: additional
         }
         if (!(used_blocks.includes(document.getElementById("inspect_block_state").value))) {
             used_blocks.push(document.getElementById("inspect_block_state").value)
@@ -445,8 +571,58 @@ function place_button_clicked() {
     }
 }
 
-function save_inpection() {
+function open_json() {
+    // Create an input element programmatically
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json'; // Accept only JSON files
 
+    // Listen for file selection
+    input.addEventListener('change', (event) => {
+        const file = event.target.files[0]; // Get the selected file
+
+        if (file && file.type === 'application/json') {
+            const reader = new FileReader();
+
+            // Read the file content as text
+            reader.onload = (e) => {
+                try {
+                    // Parse the JSON and log it to the console
+                    const json = JSON.parse(e.target.result);
+                    console.log('JSON Content:', json);
+                    schematic = json
+
+                    let m = null
+                    schematic.blocks.forEach(block => {
+                        let blockstate = block.id
+                        if (!(used_blocks.includes(blockstate))) {
+                            used_blocks.push(blockstate)
+                            let i = document.createElement("img")
+                            i.src = `blocks/${blockstate}`
+                            i.style.display = "none"
+                            document.querySelector(".sidebar.left-sidebar").appendChild(i)
+                            m = i
+                        }
+
+                        setTimeout(() => render(camera_zoom), 500)
+                        update_hierachy()
+
+                    });
+                } catch (error) {
+                    console.error('Invalid JSON file');
+                    alert('Error: Invalid JSON file!');
+                }
+            };
+
+            // Read the selected file
+            reader.readAsText(file);
+        } else {
+            alert('Please select a valid JSON file!');
+        }
+    });
+
+    // Trigger the file dialog programmatically
+    input.click();
 }
 
 

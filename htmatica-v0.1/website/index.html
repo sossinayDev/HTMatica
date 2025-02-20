@@ -2,7 +2,7 @@
 <html>
 
 <head>
-    <title>MC-Schematic {VERSION}</title>
+    <title>HTMatica {VERSION}</title>
     <link rel="stylesheet" type="text/css" href="style.css">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -12,6 +12,7 @@
         rel="stylesheet">
 
     <script>{ SCRIPT }</script>
+    
 </head>
 
 <body>
@@ -46,7 +47,7 @@
                     <label for="inspect_y">y:</label><input id="inspect_y" type="number" oninput="save_inspection()"><br>
                     <label for="inspect_z">z:</label><input id="inspect_z" type="number" oninput="save_inspection()"><br>
                     <label for="inspect_block_state">block_state:</label><input id="inspect_block_state" oninput="save_inspection()"><br>
-                    <label for="inspect_additional">additional:</label><input id="inspect_additional" onchange="save_inspection()"><br>
+                    <div id="additional_elements"></div>
                     <button onclick="delete_inspected()">Destroy</button>
                 </div>
             </div>
@@ -64,12 +65,13 @@
         </aside>
 
         <footer class="bottombar">
-            <img src="static/UI/block.png" class="ui_button" style="filter: invert(1);"
+            <img src="static/UI/block.png" class="ui_button"
                 onclick="place_button_clicked()"></img>
             <div id="position_selector"><input type="number" id="set_pos_x" placeholder="X"><input type="number" id="set_pos_y" placeholder="Y"><input type="number" id="set_pos_z" placeholder="Z"></div>
 
             <img src="static/UI/exp_schem.png" class="ui_button" onclick="export_schem()"></img>
-            <img src="static/UI/exp_json.jpg" class="ui_button" onclick="export_json()"></img>
+            <img src="static/UI/exp_json.png" class="ui_button" onclick="export_json()"></img>
+            <img src="static/UI/open.png" class="ui_button" onclick="open_json()"></img>
         </footer>
     </div>
 </body>

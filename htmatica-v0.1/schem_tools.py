@@ -7,14 +7,14 @@ def json_to_schem(data, directory: str="C:\\Users\\yanis\\Documents\\mc-schemati
     name = data["meta"]["name"]
     print(name)
     for block in data["blocks"]:
-        if "additional_data" in block.keys():
+        if "additional" in block.keys():
             schematic.setBlock(
                                 (
                                     block["pos"]["x"],
                                     block["pos"]["y"],
                                     block["pos"]["z"]
                                 ),
-                                block["block_state"]+"["+block["additional_data"]+"]"
+                                block["block_state"]+"["+block["additional"]+"]"
                             )
         else:
             schematic.setBlock(

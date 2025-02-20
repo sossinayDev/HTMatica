@@ -91,7 +91,7 @@ h3 {
 }
 
 #hierachy_container {
-    height: 40vh;
+    height: 30vh;
     width: 100%;
     overflow-y: scroll;
 }
@@ -177,7 +177,7 @@ h3 {
 }
 
 #inspector_container {
-    height: 30%;
+    height: 40vh;
 }
 
 label {

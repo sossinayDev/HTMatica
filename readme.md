@@ -10,9 +10,12 @@ The in-browser GUI is simple and clean. It's easy to install new versions and ma
 At the time being, you can only place single blocks. A fill command will be added in close future.
 ### Hierachy & Inspector
 You can check, move, change and destroy blocks from the hierachy on the top right.
+You can change and save any know block states in the inspector.
 ### Blocks from different versions (Ranging from 1.12 to 1.21.4) & block history
 Using the version manager, you can install block data for versions ranging from 1.12 to 1.21.4. The blocks can then be searched and selected. The 10 most recently used blocks are shown in a container above the main block list. _Hint: Type "*" to show all available blocks (Can destroy your performance though)_
 ### Export to different formats
 You can either export the schematic to the .json format of the .schem format (Compatible with Schematica/Litematica)
+### JSON import
+Easily save your creations and load them in again.
 ### Easy renders
 Just right click the viewport and select "Save image" to get an image of your schematic.
