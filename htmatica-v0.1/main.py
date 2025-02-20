@@ -243,8 +243,8 @@ def css():
 @app.route('/blocks/<filename>')
 def serve_block_texture(filename):
     # Define the path to the block_textures directory for the given version
-    directory = "assets\\block_icons"
-    print(directory+"\\"+filename+".png")
+    directory = "assets/block_icons/"
+    print(directory+filename+".png")
 
     # Check if the directory and file exist
     if os.path.exists(os.path.join(directory, filename+".png")):
