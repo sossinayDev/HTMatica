@@ -73,33 +73,33 @@ def install_version(version_id:str,force:bool=False):
     
     # Download the minecraft assets from minecraft-assets cloud
     # Skip this part if file already exists
-    if not os.path.isfile(f"versions/{version_id}/data.zip"):
-        file_server = f"https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/heads/{version_id}"
-        print(file_server)
-        print("Downloading minecraft assets")
-        request = requests.get(file_server)
-        if request.ok:
-            open(f"versions/{version_id}/data.zip", "xb").write(request.content)
-        else:
-            print("Error while downloading version "+version_id)
-            shutil.rmtree(f"versions/{version_id}")
-            return False
-    else:
-        print("Assets already downloaded, skipping download")
+    # if not os.path.isfile(f"versions/{version_id}/data.zip"):
+    #     file_server = f"https://github.com/InventivetalentDev/minecraft-assets/zipball/refs/heads/{version_id}"
+    #     print(file_server)
+    #     print("Downloading minecraft assets")
+    #     request = requests.get(file_server)
+    #     if request.ok:
+    #         open(f"versions/{version_id}/data.zip", "xb").write(request.content)
+    #     else:
+    #         print("Error while downloading version "+version_id)
+    #         shutil.rmtree(f"versions/{version_id}")
+    #         return False
+    # else:
+    #     print("Assets already downloaded, skipping download")
         
-    # Extract the block textures from the data.zip file
-    print("Extracting assets")
-    with zipfile.ZipFile(f"versions/{version_id}/data.zip", 'r') as data:
-        block_dir = data.namelist()[0] + "assets/minecraft/textures/block"
-        # Iterate through all files in the zip
-        for file in data.namelist():
-            if file.startswith(block_dir) and file.endswith(".png"):
-                # Extract only the file name (strip the directory structure)
-                filename = os.path.basename(file)
-                if filename:
-                    destination = f"versions/{version_id}/block_textures/{filename}"
-                    with open(destination, "wb") as f:
-                        f.write(data.read(file))
+    # # Extract the block textures from the data.zip file
+    # print("Extracting assets")
+    # with zipfile.ZipFile(f"versions/{version_id}/data.zip", 'r') as data:
+    #     block_dir = data.namelist()[0] + "assets/minecraft/textures/block"
+    #     # Iterate through all files in the zip
+    #     for file in data.namelist():
+    #         if file.startswith(block_dir) and file.endswith(".png"):
+    #             # Extract only the file name (strip the directory structure)
+    #             filename = os.path.basename(file)
+    #             if filename:
+    #                 destination = f"versions/{version_id}/block_textures/{filename}"
+    #                 with open(destination, "wb") as f:
+    #                     f.write(data.read(file))
 
     # Download block information from github
     print("Loading block data...")
