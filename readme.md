@@ -1,8 +1,8 @@
 # HTMatica
 ## Table of contents
 [What is this?](#what-is-this)  
-[Features](#features)
-[Devlog](#devlog)
+- [Features](#features)
+- [Devlog](#devlog)
 ## What is this?
 This repository hosts a webserver on [localhost:5000], that lets you edit simple Minecraft schematics in your browser. It uses the lightweight library _flask_ to do all the backend stuff and the _mc-schematics_ library to compile the schematics.
 ## Features
