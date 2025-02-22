@@ -1,0 +1,10 @@
+<svg width="400" height="400" viewBox="-200 -200 400 400" xmlns="http://www.w3.org/2000/svg">
+  <path stroke="red" stroke-width="3" d="m0 0 150 87"/>
+  <text x="160" y="110" fill="red" font-size="50">X</text>
+  <path stroke="green" stroke-width="3" d="M0 0v-150"/>
+  <text x="-14" y="-160" fill="green" font-size="50">Y</text>
+  <path stroke="#00f" stroke-width="3" d="m0 0-150 87"/>
+  <text x="-190" y="110" fill="#00f" font-size="50">Z</text>
+  <path stroke="#fff" stroke-width="3" d="M150-87 0 0"/>
+  <text x="170" y="-100" fill="#fff" font-size="50">N</text>
+</svg>

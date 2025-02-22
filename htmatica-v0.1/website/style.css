@@ -4,6 +4,8 @@ html {
     font-family: "Poppins";
     font-weight: 400;
     overflow-y: hidden;
+    scrollbar-color: rgb(194, 194, 194) rgba(0, 0, 0, 0);
+    scrollbar-width: thin;
 }
 
 
@@ -20,7 +22,7 @@ h3 {
 /* General container for the layout */
 .container {
     display: grid;
-    grid-template-areas: 
+    grid-template-areas:
         "topbar topbar topbar"
         "left-sidebar viewport right-sidebar"
         "bottombar bottombar bottombar";
@@ -157,6 +159,7 @@ h3 {
 }
 
 #canvas {
+    cursor: move;
     max-width: auto;
     max-height: 100%;
     width: auto;
@@ -239,6 +242,5 @@ select {
 
 #installed_versions {
     height: 5vh;
-    overflow-y: scroll; 
+    overflow-y: scroll;
 }
-

@@ -1,5 +1,4 @@
 import mcschematic
-import json
 
 def json_to_schem(data, directory: str="C:\\Users\\yanis\\Documents\\mc-schematics"):
     schematic = mcschematic.MCSchematic()
@@ -10,18 +9,18 @@ def json_to_schem(data, directory: str="C:\\Users\\yanis\\Documents\\mc-schemati
         if "additional" in block.keys():
             schematic.setBlock(
                                 (
-                                    block["pos"]["x"],
+                                    -block["pos"]["x"],
                                     block["pos"]["y"],
-                                    block["pos"]["z"]
+                                    -block["pos"]["z"]
                                 ),
-                                block["block_state"]+"["+block["additional"]+"]"
+                                block["block_state"]+block["additional"]
                             )
         else:
             schematic.setBlock(
                                 (
-                                    block["pos"]["x"],
+                                    -block["pos"]["x"],
                                     block["pos"]["y"],
-                                    block["pos"]["z"]
+                                    -block["pos"]["z"]
                                 ),
                                 block["block_state"]
                             )

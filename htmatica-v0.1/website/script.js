@@ -126,7 +126,7 @@ function select_block(block) {
 function load_block_pallette() {
     console.log("Loading...")
 
-    let prompt = document.getElementById("search").value.toLowerCase().replace(" ", "_")
+    let prompt = document.getElementById("search").value.toLowerCase().replaceAll(" ", "_")
 
 
 
@@ -204,9 +204,6 @@ function init() {
             camX -= deltaX;
             camY -= deltaY;
 
-            // Log the updated camera position
-            console.log(`Camera moved to: (${camX}, ${camY})`);
-
             // Update last mouse positions
             lastMouseX = mouseX;
             lastMouseY = mouseY;
@@ -243,16 +240,65 @@ function init() {
         // Redraw the canvas with updated zoom
         render(camera_zoom);
     });
+
+    setTimeout(load_recent_schematic, 500)
+}
+
+function load_recent_schematic() {
+    schem = JSON.parse(localStorage.getItem("last_schematic"))
+    if (!(schem)) {
+        new_schematic()
+    }
+    else {
+        load_from_data(schem)
+    }
+}
+
+function auto_save() {
+    schematic.meta.name = document.getElementById("schematic_name").value
+    localStorage.setItem("last_schematic", JSON.stringify(schematic))
+}
+setInterval(auto_save, 5000)
+
+function new_schematic() {
+    schematic = { blocks: [], meta: {} }
+    camX = -200
+    camY = -200
+    camera_zoom = 1
+    render(camera_zoom)
+    update_hierachy()
+    clear_inspector()
+    document.getElementById("schematic_name").value = ""
+    auto_save()
+    document.getElementById("preloaded_blocks").innerHTML=""
+}
+
+function add_block_preload(blockstate) {
+    console.log(blockstate)
+    if (!(used_blocks.includes(blockstate))) {
+        used_blocks.push(blockstate)
+
+        if (blockstate.includes("stairs")) {
+            let i2 = document.createElement("img")
+            i2.src = `blocks/${blockstate.replace("stairs", "slab")}`
+            i2.style.display = "none"
+            document.getElementById("preloaded_blocks").appendChild(i2)
+            let i = document.createElement("img")
+            i.src = `blocks/${blockstate}_quarter`
+            i.style.display = "none"
+            document.getElementById("preloaded_blocks").appendChild(i)
+        }
+        else {
+            let i = document.createElement("img")
+            i.src = `blocks/${blockstate}`
+            i.style.display = "none"
+            document.getElementById("preloaded_blocks").appendChild(i)
+        }
+    }
 }
 
 function set_block(x, y, z, blockstate) {
-    if (!(used_blocks.includes(blockstate))) {
-        used_blocks.push(blockstate)
-        let i = document.createElement("img")
-        i.src = `blocks/${blockstate}`
-        i.style.display = "none"
-        document.querySelector(".sidebar.left-sidebar").appendChild(i)
-    }
+    add_block_preload(blockstate)
 
     let i = 0
     schematic.blocks.forEach(block => {
@@ -262,6 +308,21 @@ function set_block(x, y, z, blockstate) {
         i++
     });
 
+    let states = blocks[blockstate].states
+    let additional = "["
+    states.forEach(state => {
+        if (state.type == "bool") {
+            additional += `${state.name}=false,`
+        }
+        if (state.type == "enum") {
+            additional += `${state.name}=${state.values[0]},`
+        }
+        if (state.type == "int") {
+            additional += `${state.name}=0,`
+        }
+    })
+    additional = "[" + additional.substring(1, additional.length - 1) + "]"
+
     schematic.blocks.push(
         {
             pos: {
@@ -269,15 +330,19 @@ function set_block(x, y, z, blockstate) {
                 y: y,
                 z: z
             },
-            block_state: blockstate
+            block_state: blockstate,
+            additional: additional
         })
 
     update_hierachy()
     render(camera_zoom)
+
+    auto_save()
 }
 
-function render(scale) {
+function render(scale = 1, snapshot_image = false) {
     ctx2.clearRect(0, 0, canvas.width, canvas.height);
+
 
     r_schematic = structuredClone(schematic)
 
@@ -293,21 +358,124 @@ function render(scale) {
     });
 
     all_blocks.forEach(block => {
-        // Calculate isometric position
         let posX = (block.pos.x * scale * 90) - (block.pos.z * scale * 90) - camX;
         let posY = (block.pos.x / 2 * scale * 90) + (block.pos.z / 2 * scale * 90) - (block.pos.y * scale * 90) - camY + (block.pos.z * scale * 8) + (block.pos.x * scale * 8) - (block.pos.y * scale * 14);
 
-        // Get the block image and render it
-        let img = document.getElementById("placement_block_img");
-        img.src = `/blocks/${block.block_state}`;
-        ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
+        let xmod = 0
+        let ymod = 0
 
-        console.log(`Block ${block.block_state} at: (${block.pos.x}, ${block.pos.y}, ${block.pos.z}) rendered at (${posX}, ${posY})`);
+        let img = document.getElementById("placement_block_img");
+
+        img.src = `/blocks/${block.block_state}`;
+        if (block.block_state.includes("slab")) {
+            additional = parse_additional(block.additional)
+
+            if (additional.type == "top") {
+                ymod = -(scale * 52)
+            }
+            if (additional.type == "double") {
+                ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
+                ymod = -(scale * 52)
+                ctx2.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
+            }
+        }
+        else if (block.block_state.includes("stairs")) {
+            additional = parse_additional(block.additional)
+
+            let img = document.getElementById("placement_block_img");
+
+            let possible_quarters = {
+                "straight": "0101",
+                "inner_left": "0111",
+                "inner_right": "1101",
+                "outer_left": "0001",
+                "outer_right": "0100",
+            }
+
+            let rotations = {
+                "north": 0,
+                "west": 3,
+                "south": 2,
+                "east": 1
+            }
+
+            if (additional.half == "bottom") {
+                img.src = `/blocks/${block.block_state.replace("stairs", "slab")}`;
+                ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
+            }
+
+
+
+            let quarters = possible_quarters[additional.shape]
+            for (var i2 = 0; i2 < rotations[additional.facing]; i2++) {
+                quarters = quarters[1] + quarters[3] + quarters[0] + quarters[2]
+            }
+
+            let quarter_positions = [
+                { xmod: 0, ymod: -scale * 52 },
+                { xmod: -scale * 44, ymod: -scale * 26 },
+                { xmod: -scale * -44, ymod: -scale * 26 },
+                { xmod: 0, ymod: 0 }
+            ]
+            img.src = `/blocks/${block.block_state}_quarter`;
+            for (var i3 = 0; i3 < 4; i3++) {
+                if (quarters.substring(i3, i3 + 1) == "1") {
+                    xmod = quarter_positions[parseInt(i3)].xmod
+                    ymod = quarter_positions[parseInt(i3)].ymod
+                    if (additional.half == "top") {
+                        ymod += scale * 52
+                    }
+                    let ctx3 = canvas.getContext("2d")
+                    ctx3.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
+                }
+            }
+
+            if (additional.half == "top") {
+                ymod = -(scale * 52)
+                xmod = 0
+                img.src = `/blocks/${block.block_state.replace("stairs", "slab")}`;
+                ctx2.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
+            }
+
+        }
+        else {
+            ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
+        }
     });
+
+    if (snapshot_image) {
+        var image = canvas.toDataURL("image/png");
+        var link = document.createElement('a');
+
+        let name = document.getElementById("schematic_name").value.replaceAll(" ", "_")
+
+        invalid_filename_chars.split("").forEach(char => {
+            name = name.replaceAll(char, "")
+        });
+
+        link.download = `${name}.png`;
+        link.href = image;
+
+        link.click();
+    }
+    else {
+        ctx2.drawImage(document.getElementById("axis_overlay"), 10, canvas.clientHeight - 138, 128, 128)
+    }
+}
+
+
+
+function photo() {
+    render(camera_zoom, true)
 }
 
 function export_json() {
-    let filename = document.getElementById("schematic_name").value.replace(" ", "_").toLowerCase() + ".json"
+    let filename = document.getElementById("schematic_name").value.replaceAll(" ", "_").toLowerCase() + ".json"
+
+    invalid_filename_chars.split("").forEach(char => {
+        filename = filename.replaceAll(char, "")
+    });
+
     schematic["meta"]["name"] = document.getElementById("schematic_name").value
 
     const jsonString = JSON.stringify(schematic, null, 2);
@@ -342,6 +510,7 @@ function update_hierachy() {
         b.onclick = () => inspect_block(schematic.blocks.indexOf(block))
         document.getElementById("hierachy").appendChild(b)
     });
+    auto_save()
 }
 
 function parse_additional(str) {
@@ -388,7 +557,7 @@ function inspect_block(i) {
             let possibilities = state.values
             let element = document.createElement("select")
             element.id = `inspector_additional_${name}`
-            
+
             element.onchange = () => save_inspection()
             possibilities.forEach(pos => {
                 let opt = document.createElement("option")
@@ -449,7 +618,7 @@ function inspect_block(i) {
 }
 
 function delete_inspected() {
-    if (inspected_block) {
+    if (inspected_block != null) {
         schematic.blocks.splice(inspected_block, 1)
         render(camera_zoom)
         update_hierachy()
@@ -459,7 +628,16 @@ function delete_inspected() {
         document.getElementById("inspect_y").value = ""
         document.getElementById("inspect_z").value = ""
         document.getElementById("inspect_block_state").value = ""
+        auto_save()
     }
+}
+
+function clear_inspector() {
+    document.getElementById("additional_elements").innerHTML = ""
+    document.getElementById("inspect_x").value = ""
+    document.getElementById("inspect_y").value = ""
+    document.getElementById("inspect_z").value = ""
+    document.getElementById("inspect_block_state").value = ""
 }
 
 function save_inspection() {
@@ -487,7 +665,6 @@ function save_inspection() {
         })
 
         additional = additional.substring(0, additional.length - 1) + "]"
-        console.log(additional)
 
         let x = document.getElementById("inspect_x").value
         let y = document.getElementById("inspect_y").value
@@ -519,16 +696,12 @@ function save_inspection() {
             block_state: document.getElementById("inspect_block_state").value,
             additional: additional
         }
-        if (!(used_blocks.includes(document.getElementById("inspect_block_state").value))) {
-            used_blocks.push(document.getElementById("inspect_block_state").value)
-            let i = document.createElement("img")
-            i.src = `blocks/${document.getElementById("inspect_block_state").value}`
-            i.onload = () => render(camera_zoom)
-            i.style.display = "none"
-            document.querySelector(".sidebar.left-sidebar").appendChild(i)
-        }
-        render(camera_zoom)
+        add_block_preload(document.getElementById("inspect_block_state").value)
         update_hierachy()
+        inspect_block(inspected_block)
+        render(camera_zoom)
+
+        auto_save()
     }
 }
 
@@ -552,17 +725,17 @@ function place_button_clicked() {
     z = parseInt(z)
 
     let override = false
-    let block = ""
+    let f_block = ""
     let i = 0
     schematic.blocks.forEach(block => {
         if (block.pos.x == x && block.pos.y == y && block.pos.z == z) {
             override = true
-            block = block.block_state
+            f_block = blocks[block.block_state].name
         }
         i++
     });
     if (override) {
-        if (confirm(`Overwrite ${block} at ${x}, ${y}, ${z}?`)) {
+        if (confirm(`Overwrite ${f_block} at ${x}, ${y}, ${z}?`)) {
             set_block(x, y, z, selected_block)
         }
     }
@@ -572,58 +745,58 @@ function place_button_clicked() {
 }
 
 function open_json() {
-    // Create an input element programmatically
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json'; // Accept only JSON files
+    input.accept = '.json';
 
-    // Listen for file selection
     input.addEventListener('change', (event) => {
-        const file = event.target.files[0]; // Get the selected file
+        const file = event.target.files[0];
 
         if (file && file.type === 'application/json') {
             const reader = new FileReader();
 
-            // Read the file content as text
             reader.onload = (e) => {
                 try {
-                    // Parse the JSON and log it to the console
                     const json = JSON.parse(e.target.result);
                     console.log('JSON Content:', json);
                     schematic = json
 
-                    let m = null
-                    schematic.blocks.forEach(block => {
-                        let blockstate = block.id
-                        if (!(used_blocks.includes(blockstate))) {
-                            used_blocks.push(blockstate)
-                            let i = document.createElement("img")
-                            i.src = `blocks/${blockstate}`
-                            i.style.display = "none"
-                            document.querySelector(".sidebar.left-sidebar").appendChild(i)
-                            m = i
-                        }
+                    load_from_data(schematic)
 
-                        setTimeout(() => render(camera_zoom), 500)
-                        update_hierachy()
-
-                    });
                 } catch (error) {
                     console.error('Invalid JSON file');
                     alert('Error: Invalid JSON file!');
+                    console.error(error)
                 }
             };
-
-            // Read the selected file
             reader.readAsText(file);
         } else {
             alert('Please select a valid JSON file!');
         }
     });
-
-    // Trigger the file dialog programmatically
     input.click();
 }
+
+function load_from_data(schem) {
+    document.getElementById("schematic_name").value = schem.meta.name
+
+
+    schem.blocks.forEach(block => {
+        console.log(block.block_state)
+        add_block_preload(block.block_state)
+
+        setTimeout(() => render(camera_zoom), 500)
+    });
+
+    schematic = schem
+    update_hierachy()
+
+}
+
+function fix_render_bugs() {
+    render(camera_zoom)
+}
+setInterval(fix_render_bugs, 1000)
 
 
 let schematic = { blocks: [], meta: {} }
@@ -640,4 +813,7 @@ let inspected_block = 0
 let canvas
 let ctx2
 
+const invalid_filename_chars = "|@#¦°§¬¢`?'^\":{}[]¨<>/\\*%&$!";
+
 setTimeout(init, 100)
+window.onload = render

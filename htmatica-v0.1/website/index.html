@@ -19,20 +19,28 @@
 
     <div class="container">
         <header class="topbar">
-            <input id="schematic_name" style="margin-left: 5%; height: 55%; width: 30vw;" placeholder="Name schematic">
+            <input id="schematic_name" style="margin-left: 5%; height: 55%; width: 30vw;" oninput="auto_save()" placeholder="Name schematic">
         </header>
 
         <aside class="sidebar left-sidebar">
             <img src="blocks/stone" id="block_preview" width="64" height=64>
             <img src="blocks/stone" id="placement_block_img" style="display: none;" width="16" height=16>
+            <img src="blocks/stone" id="placement_block_full_img" style="display: none;" width="16" height=16>
+
+            <img src="static/wall_west_low.png" id="wall_west_low_img" style="display: none;" width="16" height=16>
+            <img src="static/wall_east_low.png" id="wall_east_low_img" style="display: none;" width="16" height=16>
+            <img src="static/wall_north_low.png" id="wall_north_low_img" style="display: none;" width="16" height=16>
+            <img src="static/wall_south_low.png" id="wall_south_low_img" style="display: none;" width="16" height=16>
+
             <h3>Blocks ({VERSION})</h3>
             <input id="search" oninput="load_block_pallette()" placeholder="Search blocks">
             <div id="recent"></div>
             <div id="blocks"></div>
+            <div id="preloaded_blocks"></div>
         </aside>
 
         <main class="viewport" id="viewport">
-            <canvas src="about:blank" id="canvas" height="1" width="1"></canvas>
+            <canvas src="about:blank" id="canvas" height="1" width="1"><img id="axis_overlay" src="static/UI/axis.svg" style="display: none;"></canvas>
         </main>
 
         <aside class="sidebar right-sidebar">
@@ -72,6 +80,8 @@
             <img src="static/UI/exp_schem.png" class="ui_button" onclick="export_schem()"></img>
             <img src="static/UI/exp_json.png" class="ui_button" onclick="export_json()"></img>
             <img src="static/UI/open.png" class="ui_button" onclick="open_json()"></img>
+            <img src="static/UI/new.png" class="ui_button" onclick="new_schematic()"></img>
+            <img src="static/UI/photo.png" class="ui_button" onclick="photo()"></img>
         </footer>
     </div>
 </body>

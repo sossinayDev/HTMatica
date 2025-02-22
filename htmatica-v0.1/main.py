@@ -1,5 +1,5 @@
 print("Loading libraries")
-import schem_tools, requests, json, subprocess, os, shutil, zipfile
+import schem_tools, requests, json, subprocess, os
 try:
     from flask import Flask, render_template, request, jsonify, send_from_directory, abort
 except ImportError:
@@ -9,14 +9,27 @@ except ImportError:
 print("Libraries loaded")
 
 def get_available_versions():
+    """
+    Returns a list containing all version codes (e.g ["1.21.4","1.12"])
+    
+    :return: list
+    """
     av = []
     for version in versions:
         if os.path.isdir(f"versions/{version}"):
             av.append(version)
     return av
-            
+
+
 
 def change_version(version_id:str):
+    """
+    Switches to the given version and validates the installation assets.
+    
+    :param version_id: The version ID of the version you want to switch to (e.g "1.21.4")
+
+    :return: Returns an int. Codes: 1 = Success, 2 = Version is not installed, 3 = Unknown version
+    """
     global selected_version
     if os.path.isdir(f"versions/{version_id}"):
         selected_version = version_id
@@ -37,13 +50,14 @@ def change_version(version_id:str):
     else:
         return 3
 
-
 def install_version(version_id:str,force:bool=False):
     """
-    Loads the data for the provided version of Minecraft and stores them to ./versions
+    Loads the data for the provided version of Minecraft and stores them to ./versions.
     
     :param version_id: String containing the version to install, example: \"1.21.4\"
     :param force: Bool, when True, no precautions regarding existing files will be done.
+
+    :return: Returns True on successfull installation
     """  
     print(f"Installing version {version_id}")
     
@@ -140,18 +154,39 @@ def install_version(version_id:str,force:bool=False):
     print("Finished installing version "+version_id)
     return True
 
+
+
 def clear():
+    """
+    Clears the console by spamming newline characters
+    
+    :return: None
+    """
     asdfasdf = ""
     for e in range(100):
         asdfasdf += "\n"
     print(asdfasdf)
     
-def get_index():    
+def get_index():
+    """
+    Opens the index.html file, reads it and replaces important parts with the needed data.
+    
+    :return: Returns the text content of the index.html file.
+    """
+    
     data = open("website/index.html","r").read().replace("{VERSION}", selected_version).replace("{ SCRIPT }", open("website/script.js","r").read())
-
     return data
 
 def command(data: dict):
+    """
+    Parses a command dict and executes the corresponding commands
+    
+    :param data: Dictionary containing command data. Must have "command" key and corresponding params
+                 Available commands: change_version, install_version, save_recent_block, export_schematic
+    
+    :return: None
+    """    
+    
     status = json.load(open("status.json", "r"))
     if type(data) != dict:
         print("Invalid command recieved")
@@ -164,11 +199,7 @@ def command(data: dict):
             status["installing"]["status"] = True
             status["installing"]["version"] = data["version"]
             json.dump(status,open("status.json", "w"))
-            resp = install_version(data["version"])
-            if resp:
-                return {"success": True, "version": data["version"]}
-            else:
-                return {"success": False, "version": data["version"]}
+            install_version(data["version"])
         if data["command"] == "save_recent_block":
             status = json.load(open("status.json", "r"))
             try:
@@ -180,6 +211,7 @@ def command(data: dict):
             status["recent_blocks"]=status["recent_blocks"][:10]
             json.dump(status, open("status.json", "w"))
         if data["command"] == "export_schematic":
+            print(data["schematic"])
             schem_tools.json_to_schem(data["schematic"],"schematics")
             print(data)
             subprocess.run(f"start {os.path.abspath('schematics')}", shell=True)
@@ -194,6 +226,12 @@ def command(data: dict):
     return {"error": "Unknown command"}
 
 def init():
+    """
+    Resets status and loads versions.
+
+    :return: None
+    """
+    
     global versions
     status = json.load(open("status.json", "r"))
     status["installing"]["status"] = False
@@ -203,6 +241,12 @@ def init():
     json.dump(status,open("status.json", "w"))
     
 def update_status():
+    """
+    Updates the server status. Writes important information like installed and available versions
+    
+    :return: None
+    """
+    
     global versions
     status = json.load(open("status.json", "r"))
     status["versions"]["all"]=versions
@@ -224,47 +268,65 @@ print("Starting server...")
 
 app = Flask("schematic_server")
 
-# Define the root route to serve the HTML page
 @app.route('/')
 def index():
+    """
+    index.html
+    """
     return get_index()
 
-# Define an API endpoint that the HTML/JavaScript can call
 @app.route('/process', methods=['POST'])
 def process():
-    data = request.get_json()  # Receive data from the client
+    """
+    Runs a command
+    """
+    data = request.get_json()
     command(data)
     return jsonify("success")
 
 @app.route('/style.css')
 def css():
+    """
+    Sends the style.css file
+    """
     return send_from_directory('website', 'style.css', mimetype='text/css')
 
 @app.route('/blocks/<filename>')
 def serve_block_texture(filename):
-    # Define the path to the block_textures directory for the given version
+    
+    """
+    Loads the given block texture from storage and returns it as content of the page.
+    
+    :param filename: The blockstate of the wanted block, for example "diamond_block" or "waxed_weathered_cut_copper_stairs"
+    """
+    
     directory = "assets/block_icons/"
     print(directory+filename+".png")
 
-    # Check if the directory and file exist
     if os.path.exists(os.path.join(directory, filename+".png")):
         return send_from_directory(directory, filename+".png")
     else:
-        # If the file or directory does not exist, return a 404 error
         config = json.load(open("config.json", "r"))
         config["blocks"]["invalid_blocks"].append(filename)
         json.dump(config, open("config.json", "w"))
-        abort(404)
+        abort(404) 
     
 @app.route('/status')
 def status():
+    """
+    Returns the current status to the client
+    """
     update_status()
     d = jsonify(json.load(open("status.json", "r")))
     return d
 
 @app.route('/blocks')
 def send_block_list():
+    """
+    Returns the block data/list to the client
+    """
     return send_from_directory(f'versions/{selected_version}', 'block_data.json', mimetype='application/json')
+
 print("Opening website")
 subprocess.run("start http://localhost:5000", shell=True)
 app.run(debug=False)
