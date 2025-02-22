@@ -1,6 +1,6 @@
 # HTMatica
 ## Table of contents
-[What is this?](#what-is-this)  
+- [What is this?](#what-is-this)  
 - [Features](#features)
 - [Devlog](#devlog)
 ## What is this?
