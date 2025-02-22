@@ -29,4 +29,4 @@ Easily save your creations and load them in again.
 Just right click the viewport and select "Save image" to get an image of your schematic.
 ## Devlog
 ### Version 0.1.2
-Added stair and slab block state rendering, fixed export to .schem. Implemented auto-saving. Added new icons.
+Added stair and slab block state rendering, fixed export to .schem. Implemented auto-saving. Added new icons. Removed unused imports.
