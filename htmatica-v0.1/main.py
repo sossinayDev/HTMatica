@@ -175,6 +175,12 @@ def get_index():
     """
     
     data = open("website/index.html","r").read().replace("{VERSION}", selected_version).replace("{ SCRIPT }", open("website/script.js","r").read())
+    
+    # config = json.load(open("config.json", "r"))
+    # if not config["mobile"]:
+    #     data = open("website/index.html","r").read().replace("{VERSION}", selected_version).replace("{ SCRIPT }", open("website/script.js","r").read())
+    # else:
+    #     data = open("website/index_mobile.html","r").read().replace("{VERSION}", selected_version).replace("{ SCRIPT }", open("website/script.js","r").read())
     return data
 
 def command(data: dict):
@@ -291,6 +297,13 @@ def css():
     """
     return send_from_directory('website', 'style.css', mimetype='text/css')
 
+@app.route('/style_mobile.css')
+def css2():
+    """
+    Sends the style.css file
+    """
+    return send_from_directory('website', 'style_mobile.css', mimetype='text/css')
+
 @app.route('/blocks/<filename>')
 def serve_block_texture(filename):
     
@@ -302,13 +315,16 @@ def serve_block_texture(filename):
     
     directory = "assets/block_icons/"
     print(directory+filename+".png")
+    config = json.load(open("config.json", "r"))
 
-    if os.path.exists(os.path.join(directory, filename+".png")):
-        return send_from_directory(directory, filename+".png")
+    if not filename in config["blocks"]["invalid_blocks"]:
+        if os.path.exists(os.path.join(directory, filename+".png")):
+            return send_from_directory(directory, filename+".png")
+        else:
+            config["blocks"]["invalid_blocks"].append(filename)
+            json.dump(config, open("config.json", "w"))
+            abort(404) 
     else:
-        config = json.load(open("config.json", "r"))
-        config["blocks"]["invalid_blocks"].append(filename)
-        json.dump(config, open("config.json", "w"))
         abort(404) 
     
 @app.route('/status')

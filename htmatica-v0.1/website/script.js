@@ -190,6 +190,15 @@ function init() {
         lastMouseY = event.offsetY;
     });
 
+    canvas.addEventListener('touchstart', (event) => {
+        isDragging = true;
+
+        // Get the touch coordinates and set lastMouseX and lastMouseY
+        const touch = event.touches[0];
+        lastMouseX = touch.clientX - canvas.getBoundingClientRect().left;
+        lastMouseY = touch.clientY - canvas.getBoundingClientRect().top;
+    });
+
     // Mouse move event
     canvas.addEventListener('mousemove', (event) => {
         if (isDragging) {
@@ -213,8 +222,39 @@ function init() {
         }
     });
 
+    canvas.addEventListener('touchmove', (event) => {
+        if (isDragging) {
+            // Prevent the default behavior (like scrolling)
+            event.preventDefault();
+
+            // Get the touch coordinates
+            const touch = event.touches[0];
+            const mouseX = touch.clientX - canvas.getBoundingClientRect().left;
+            const mouseY = touch.clientY - canvas.getBoundingClientRect().top;
+            console.log(mouseX, mouseY)
+            // Calculate how much the touch moved
+            const deltaX = mouseX - lastMouseX;
+            const deltaY = mouseY - lastMouseY;
+
+            // Update the camera position based on the touch movement
+            camX -= deltaX;
+            camY -= deltaY;
+
+            // Update last touch positions
+            lastMouseX = mouseX;
+            lastMouseY = mouseY;
+
+            // Optionally, redraw your scene here using the updated camX and camY
+            render(camera_zoom);
+        }
+    });
+
+
     // Mouse up event
     canvas.addEventListener('mouseup', () => {
+        isDragging = false;
+    });
+    canvas.addEventListener('touchend', () => {
         isDragging = false;
     });
 
@@ -270,7 +310,7 @@ function new_schematic() {
     clear_inspector()
     document.getElementById("schematic_name").value = ""
     auto_save()
-    document.getElementById("preloaded_blocks").innerHTML=""
+    document.getElementById("preloaded_blocks").innerHTML = ""
 }
 
 function add_block_preload(blockstate) {
@@ -287,6 +327,24 @@ function add_block_preload(blockstate) {
             i.src = `blocks/${blockstate}_quarter`
             i.style.display = "none"
             document.getElementById("preloaded_blocks").appendChild(i)
+        }
+        else if (blockstate.includes("wall")) {
+            let i2 = document.createElement("img")
+            i2.src = `blocks/${blockstate}`
+            i2.style.display = "none"
+            document.getElementById("preloaded_blocks").appendChild(i2)
+            const sides = ["north", "west", "east", "south"]
+            sides.forEach(side => {
+                let i3 = document.createElement("img")
+                i3.src = `blocks/${blockstate}_${side}_low`
+                i3.style.display = "none"
+                document.getElementById("preloaded_blocks").appendChild(i3)
+
+                let i4 = document.createElement("img")
+                i4.src = `blocks/${blockstate}_${side}_tall`
+                i4.style.display = "none"
+                document.getElementById("preloaded_blocks").appendChild(i4)
+            });
         }
         else {
             let i = document.createElement("img")
@@ -365,18 +423,21 @@ function render(scale = 1, snapshot_image = false) {
         let ymod = 0
 
         let img = document.getElementById("placement_block_img");
-
         img.src = `/blocks/${block.block_state}`;
         if (block.block_state.includes("slab")) {
             additional = parse_additional(block.additional)
 
             if (additional.type == "top") {
                 ymod = -(scale * 52)
+                ctx2.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
             }
-            if (additional.type == "double") {
+            else if (additional.type == "double") {
                 ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
                 ymod = -(scale * 52)
                 ctx2.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
+            }
+            else {
+                ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
             }
         }
         else if (block.block_state.includes("stairs")) {
@@ -436,7 +497,44 @@ function render(scale = 1, snapshot_image = false) {
                 img.src = `/blocks/${block.block_state.replace("stairs", "slab")}`;
                 ctx2.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
             }
-
+        }
+        else if (block.block_state.includes("wall")) {
+            additional = parse_additional(block.additional)
+            const sides = ["north", "west", "east", "south"]
+            img.src = `/blocks/${block.block_state}`
+            ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
+            sides.forEach(side => {
+                let value = additional[side]
+                if (value != "none") {
+                    ymod = 0
+                    xmod = 0
+                    img.src = `/blocks/${block.block_state}_${side}_${value}`;
+                    let ctx3 = canvas.getContext("2d")
+                    if (value == "low") {
+                        ymod = (scale * 8)
+                        xmod = -(scale * 16)
+                    }
+                    else {
+                        if (side == "south") {
+                            ymod = -scale * 2
+                            xmod = scale * 6
+                        }
+                        else if (side == "west") {
+                            xmod = scale * 8
+                            ymod = -scale * 3.5
+                        }
+                        else if (side == "north") {
+                            xmod = scale * 3.5
+                            ymod = -scale * 3.5
+                        }
+                        else if (side == "east") {
+                            xmod = scale * 3.5
+                            ymod = -scale * 3
+                        }
+                    }
+                    ctx3.drawImage(img, posX + xmod, posY + ymod, scale * 256, scale * 256);
+                }
+            });
         }
         else {
             ctx2.drawImage(img, posX, posY, scale * 256, scale * 256);
